@@ -1,0 +1,19 @@
+Use case: style-transfer
+Asset type: one production sprite sheet of SIX action icons for TopMostTool, matching its approved v2 pushpin branding.
+Input image 1 is a STYLE reference: rounded forms, deep charcoal outline #24323A, bright turquoise teal #12B8AA, pale icy mint #EDF9F7, and a restrained smooth internal gradient. Draw the requested action symbols using that exact visual vocabulary. Do not draw pushpins in these action icons.
+
+Layout: a square canvas divided invisibly into THREE equal columns and TWO equal rows. Each of the six cells contains exactly ONE standalone icon, centered in its cell. Keep every icon fully inside its cell, with ample transparent gutters and no overlap across cells. All six symbols must have the SAME visual scale and medium-bold charcoal outline weight. No drawn grid or cell dividers.
+
+Top row, left to right:
+1. Zoom in: a round pale-mint magnifying-glass lens with a charcoal border, a short rounded teal handle angled down-right, and a clearly visible dark PLUS inside.
+2. Zoom out: the IDENTICAL magnifying glass, same lens and handle geometry, with a dark MINUS inside instead of the plus.
+3. Reset zoom: a bold teal clockwise circular arrow with a dark charcoal outline, surrounding a small simple pale-mint rounded square. One arrowhead, clean and recognisable.
+
+Bottom row, left to right:
+4. Copy: two overlapping rounded rectangular document sheets; rear sheet pale mint, front sheet very light off-white, deep charcoal contours and a small teal accent. Keep document shapes plain and legible, without tiny text.
+5. Save: one familiar rounded-corner floppy disk, teal body with dark charcoal contour, pale mint top slot and a pale rectangular label area below. Simple broad shapes, no letters or markings.
+6. Close: a simple rounded circular button with a pale coral fill, charcoal contour, and a thick clean coral-red X centered inside. This is the only red-accented action; use the same rounded forms and outline weight as the other five.
+
+Style: crisp clean vector-like illustration, friendly rounded joins, minimal detail, subtle teal gradients confined inside the fills. Optimise symbol clarity for use at 20 and 24 pixels. Keep the reference's dark outlines; avoid an ultra-thin monochrome line-icon aesthetic.
+
+Background: real transparency around all icons, including the gutters. No background cards, no printed checkerboard, no text, labels, numbers, watermark, title, ornamental border, extra symbols, duplicate icons, cast shadows, muddy shading, glow, bevel, glossy plastic, 3D perspective, or scenery. Exactly six icons, in the exact order stated.

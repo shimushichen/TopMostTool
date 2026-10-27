@@ -1,0 +1,55 @@
+name: Release
+
+# Explicitly select a reviewed tag; existing releases are never overwritten.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag (for example v1.0.0)
+        required: true
+        default: v1.0.0
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Check tag and release status
+        shell: pwsh
+        run: |
+          $project = [xml](Get-Content src/TopMostTool/TopMostTool.csproj -Raw)
+          $version = [string]$project.Project.PropertyGroup.Version
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and project version differ.' }
+          $releases = gh api "repos/$env:GITHUB_REPOSITORY/releases" --paginate --jq '.[].tag_name'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect existing releases.' }
+          if ($releases -contains $env:RELEASE_TAG) { throw 'This release already exists; its assets are preserved.' }
+      - name: Build and run surface tests
+        shell: pwsh
+        run: |
+          ./scripts/build.ps1
+          ./scripts/test.ps1 -Suite Surface -NoBuild
+      - name: Publish to staging, verify and package
+        shell: pwsh
+        run: ./scripts/publish.ps1
+      - name: Create GitHub Release
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_TAG.Substring(1)
+          $assets = "artifacts/release/$env:RELEASE_TAG"
+          gh release create $env:RELEASE_TAG --verify-tag --title "TopMostTool $version" `
+            --notes-file "$assets/RELEASE_NOTES.md" `
+            "$assets/TopMostTool.exe" "$assets/TopMostTool-$version-win-x64.zip" "$assets/SHA256SUMS.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release creation failed.' }

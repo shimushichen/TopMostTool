@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/Source/application.png;../../src/TopMostTool/Assets/Source/tray.png" LogicalName="TopMostTool.Assets.Source.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/Application.ico" LogicalName="TopMostTool.Assets.Application.ico" />
+    <Compile Include="../../src/TopMostTool/*.cs" Exclude="../../src/TopMostTool/Program.cs" Link="App/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/Tray.ico" LogicalName="TopMostTool.Assets.Tray.ico" />
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/Tray-*.png" LogicalName="TopMostTool.Assets.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/MenuPinIcons/*.png" LogicalName="TopMostTool.Assets.MenuPinIcons.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/TopMostTool/Assets/ScreenshotMenuIcons/*.png" LogicalName="TopMostTool.Assets.ScreenshotMenuIcons.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

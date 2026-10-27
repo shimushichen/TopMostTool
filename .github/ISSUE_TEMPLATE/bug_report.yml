@@ -1,0 +1,25 @@
+name: 问题反馈
+description: 报告窗口置顶、截图贴图或界面问题
+title: "[Bug] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: TopMostTool 版本
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Windows 与显示器环境
+      description: Windows 版本、显示器数量、各屏缩放比例，是否使用远程桌面。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤、预期结果与实际结果
+      description: 如涉及第三方窗口，请注明应用名称。可附截图，请隐藏个人信息。
+    validations:
+      required: true

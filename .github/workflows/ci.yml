@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Windows build and surface pixels
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore and build both projects
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - name: Check raw layered-surface pixels
+        shell: pwsh
+        run: ./scripts/test.ps1 -Suite Surface -NoBuild
+      - name: Keep pixel previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surface-pixels
+          path: tests/TopMostTool.Tests/artifacts/badge-surface-*.png
+          if-no-files-found: ignore
