@@ -56,7 +56,7 @@ internal static class TrayIconFactory
         graphics.CompositingMode = CompositingMode.SourceCopy;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
         graphics.PixelOffsetMode = PixelOffsetMode.Half;
-        float inset = name == "tray" ? Math.Max(2F, size * 0.10F) : size * 0.08F;
+        float inset = name == "tray" ? Math.Max(1.5F, size * 0.08F) : size * 0.06F;
         float scale = Math.Max(1, size - inset * 2) / Math.Max(bounds.Width, bounds.Height);
         float width = bounds.Width * scale, height = bounds.Height * scale;
         graphics.DrawImage(source, new RectangleF((size - width) / 2 - bounds.Left * scale,
@@ -77,14 +77,28 @@ internal static class GraphicsExtensions
 {
     internal static void FillRoundedRectangle(this Graphics graphics, Brush brush, float x, float y, float width, float height, float radius)
     {
-        using GraphicsPath path = RoundedRectanglePath(x, y, width, height, radius);
-        graphics.FillPath(brush, path);
+        PixelOffsetMode previous = graphics.PixelOffsetMode;
+        if (previous is not (PixelOffsetMode.HighQuality or PixelOffsetMode.Half))
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        try
+        {
+            using GraphicsPath path = RoundedRectanglePath(x, y, width, height, radius);
+            graphics.FillPath(brush, path);
+        }
+        finally { graphics.PixelOffsetMode = previous; }
     }
 
     internal static void DrawRoundedRectangle(this Graphics graphics, Pen pen, float x, float y, float width, float height, float radius)
     {
-        using GraphicsPath path = RoundedRectanglePath(x, y, width, height, radius);
-        graphics.DrawPath(pen, path);
+        PixelOffsetMode previous = graphics.PixelOffsetMode;
+        if (previous is not (PixelOffsetMode.HighQuality or PixelOffsetMode.Half))
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        try
+        {
+            using GraphicsPath path = RoundedRectanglePath(x, y, width, height, radius);
+            graphics.DrawPath(pen, path);
+        }
+        finally { graphics.PixelOffsetMode = previous; }
     }
 
     private static GraphicsPath RoundedRectanglePath(float x, float y, float width, float height, float radius)

@@ -35,6 +35,8 @@ internal static partial class Program
                 else if (args.Contains("--menus-shortcuts")) await TestMenusAndShortcuts();
                 else if (args.Contains("--settings-preview")) TestShortcutEditor();
                 else if (args.Contains("--ui-preview")) await TestUiSystem();
+                else if (args.Contains("--shortcut-layout")) await TestShortcutCompactLayout();
+                else if (args.Contains("--dialog-typography")) await TestDialogTypography();
                 else if (args.Contains("--rendering")) await TestRendering();
                 else if (args.Contains("--badge-surface")) TestBadgeSurfacePixels();
                 else if (args.Contains("--badges")) { await TestIcons(); await TestBadgeLifecycle(); await TestNativeWindow(); }
@@ -82,21 +84,20 @@ internal static partial class Program
         foreach (int size in new[] { 16, 20, 24, 26, 32, 40, 48, 64, 96, 128, 256 })
         {
             using Bitmap pin = TrayIconFactory.CreatePinImage(size);
-            int visible = 0, teal = 0;
+            int visible = 0, blue = 0, pearl = 0;
             for (int y = 0; y < pin.Height; y++)
                 for (int x = 0; x < pin.Width; x++)
                 {
                     Color pixel = pin.GetPixel(x, y);
                     if (pixel.A >= 128) visible++;
-                    if (pixel.A >= 128 && pixel.G > pixel.R + 40 && pixel.B > 80) teal++;
+                    if (pixel.A >= 128 && pixel.B > pixel.R + 40 && pixel.B > 140) blue++;
+                    if (pixel.A >= 128 && pixel.R > 180 && pixel.G > 185 && pixel.B > 195) pearl++;
                 }
-            Check(pin.Size == new Size(size, size) && teal > size * size / 10,
-                $"{size}px embedded pin frame is readable and teal ({pin.Width}x{pin.Height}, {teal} teal pixels)");
+            Check(pin.Size == new Size(size, size) && blue > size * size / 10 && pearl > size * size / 6,
+                $"{size}px embedded icon frame keeps pearl-silver glass + sapphire top layer ({pin.Width}x{pin.Height}, blue={blue}, pearl={pearl})");
             Check(pin.GetPixel(0, 0).A == 0 && pin.GetPixel(size - 1, size - 1).A == 0 &&
-                // The 16px frame reserves a two-pixel safety inset, so its
-                // complete silhouette occupies slightly less of the canvas.
-                visible > size * size / (size == 16 ? 6 : 5) && visible < size * size * 3 / 5,
-                $"{size}px pin preserves transparent padding without a rectangular background");
+                visible > size * size / 3 && visible < size * size * 4 / 5,
+                $"{size}px icon preserves transparent safety padding around its squircle silhouette");
         }
 
         Rectangle area = Screen.PrimaryScreen!.WorkingArea;
@@ -122,18 +123,18 @@ internal static partial class Program
             badge.Sync();
             await Task.Delay(150);
             using Bitmap actual = ScreenCapture.Capture(badge.Bounds);
-            int mismatched = 0, colored = 0;
+            int mismatched = 0, contrasting = 0;
             for (int y = 0; y < image.Height; y++)
                 for (int x = 0; x < image.Width; x++)
                 {
                     Color a = actual.GetPixel(x, y), b = CompositePinPixel(image.GetPixel(x, y), color);
                     if (Math.Abs(a.R - b.R) > 4 || Math.Abs(a.G - b.G) > 4 || Math.Abs(a.B - b.B) > 4) mismatched++;
-                    if (a.A > 128 && a.G > a.R + 20) colored++;
+                    if (Math.Abs(a.R - color.R) + Math.Abs(a.G - color.G) + Math.Abs(a.B - color.B) > 120) contrasting++;
                 }
             string theme = color.R > 128 ? "light" : "dark";
             actual.Save(Path.Combine(Artifacts, $"badge-{theme}.png"));
-            Check(colored > 20 && mismatched == 0,
-                $"badge preserves every source pixel on {theme} background ({mismatched} comparison pixels differ)");
+            Check(contrasting > 20 && mismatched == 0,
+                $"badge preserves every source pixel on {theme} background ({mismatched} comparison pixels differ, {contrasting} high-contrast pixels)");
         }
         IntPtr foreground = NativeMethods.GetForegroundWindow();
         badge.Hide();
@@ -323,7 +324,7 @@ internal static partial class Program
             Console.WriteLine($"Native UI DPI: {menu.DeviceDpi}");
             CheckMenu(menu, "tray-menu.png");
             ToolStripMenuItem captureItem = menu.Items.OfType<ToolStripMenuItem>().Single(item => item.Text == "截图贴图");
-            Check(captureItem.Image != null, "screen capture command uses the tray pin icon");
+            Check(captureItem.Image != null, "screen capture command uses its dedicated screenshot icon");
             Check(captureItem.TextAlign == ContentAlignment.MiddleLeft && captureItem.ImageAlign == ContentAlignment.MiddleCenter,
                 "screen capture text and icon use centered menu alignment");
             Check(menu.Items.OfType<ToolStripMenuItem>().Any(item => item.Text == "截图贴图"), "tray exposes screen capture command");
@@ -434,6 +435,7 @@ internal static partial class Program
         using var preview = new Bitmap(menu.Width, menu.Height);
         menu.DrawToBitmap(preview, new Rectangle(Point.Empty, menu.Size));
         preview.Save(Path.Combine(Artifacts, fileName));
+        SaveNativeWindowPreview(menu, "native-" + fileName);
         foreach (ToolStripMenuItem item in menu.Items.OfType<ToolStripMenuItem>())
         {
             if (!item.Visible) continue;
@@ -449,7 +451,10 @@ internal static partial class Program
                 for (int x = left; x < right; x++)
                 {
                     Color pixel = preview.GetPixel(x, y);
-                    if (pixel.R >= 180 || pixel.G >= 180 || pixel.B >= 180) continue;
+                    // Perceived luminance includes saturated error/accent colors;
+                    // rejecting pixels by any one RGB channel hides solid red text.
+                    int luminance = (pixel.R * 299 + pixel.G * 587 + pixel.B * 114) / 1000;
+                    if (luminance >= 180) continue;
                     pixels++;
                     top = Math.Min(top, y);
                     bottom = Math.Max(bottom, y);
@@ -537,7 +542,7 @@ internal static partial class Program
 
     private static async Task TestPublished(string path)
     {
-        Check(FileVersionInfo.GetVersionInfo(path).FileVersion == "1.0.0.0", "published executable has version 1.0.0");
+        Check(FileVersionInfo.GetVersionInfo(path).FileVersion == "2.0.0.0", "published executable has version 2.0.0");
         using (Icon icon = Icon.ExtractAssociatedIcon(Path.GetFullPath(path))!)
         using (Bitmap bitmap = icon.ToBitmap())
         {

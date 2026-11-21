@@ -1,13 +1,17 @@
 name: Release
 
-# Explicitly select a reviewed tag; existing releases are never overwritten.
+# Publish a GitHub Release automatically on v*.*.* tag push or manual workflow_dispatch;
+# existing releases are never overwritten.
 on:
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag (for example v1.0.0)
+        description: Existing version tag (for example v2.0.0)
         required: true
-        default: v1.0.0
+        default: v2.0.0
         type: string
 
 permissions:
@@ -18,12 +22,12 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
-      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x

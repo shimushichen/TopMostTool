@@ -42,25 +42,22 @@ public static class TopMostIconBuilder
                         g.CompositingMode = CompositingMode.SourceCopy;
                         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        // Keep the complete antialiased silhouette. Render the
-                        // full source rather than cropping at the first opaque
-                        // pixel, and leave two physical pixels at small sizes.
-                        float inset = tray ? Math.Max(2f, size * 0.10f) : size * 0.08f;
+                        // Keep the complete antialiased silhouette with clean 1px transparent safety edges.
+                        float inset = tray ? Math.Max(1.5f, size * 0.08f) : size * 0.06f;
                         float scale = (size - inset * 2) / Math.Max(bounds.Width, bounds.Height);
                         float width = bounds.Width * scale, height = bounds.Height * scale;
                         g.DrawImage(source, new RectangleF((size - width) / 2 - bounds.Left * scale,
                             (size - height) / 2 - bounds.Top * scale, source.Width * scale, source.Height * scale),
                             new RectangleF(0, 0, source.Width, source.Height), GraphicsUnit.Pixel);
                     }
-                    // Lift the dark needle at tray sizes so it remains visible on a dark taskbar.
-                    if (tray && size <= 24)
-                        for (int y = (int)(size * 0.68f); y < size; y++)
-                            for (int x = 0; x < size / 2; x++)
-                            {
-                                Color pixel = frame.GetPixel(x, y);
-                                if (pixel.A > 0 && pixel.G < 125 && pixel.B < 125)
-                                    frame.SetPixel(x, y, Color.FromArgb(pixel.A, pixel.R + 5, pixel.G + 28, pixel.B + 23));
-                            }
+                    // Discard practically invisible bicubic filter tails so outer safety edges stay clean.
+                    for (int y = 0; y < size; y++)
+                        for (int x = 0; x < size; x++)
+                        {
+                            Color pixel = frame.GetPixel(x, y);
+                            if (pixel.A > 0 && pixel.A <= 4)
+                                frame.SetPixel(x, y, Color.Transparent);
+                        }
                     using (MemoryStream buffer = new MemoryStream())
                     {
                         frame.Save(buffer, ImageFormat.Png);

@@ -2,9 +2,8 @@ using System.Drawing.Drawing2D;
 
 namespace TopMostTool;
 
-// Keep Button's keyboard, dialog and accessibility behavior, but paint the
-// complete rounded surface ourselves. Clipping a native rectangular border
-// with a Region leaves disconnected corners and a second square focus frame.
+// Keep Button's keyboard, dialog and accessibility behavior while painting
+// a crisp, Apple-minimalist rounded surface without clipping regions.
 internal sealed class RoundedButton : Button
 {
     private bool _hovered;
@@ -19,31 +18,38 @@ internal sealed class RoundedButton : Button
 
     protected override void OnPaintBackground(PaintEventArgs e)
     {
-        // All themed buttons sit on a solid surface. Paint the corners with
-        // that surface instead of cutting off the antialiased rounded stroke.
-        e.Graphics.Clear(Parent?.BackColor ?? UiTheme.Background);
+        Color cornerSurface = FlatAppearance.BorderSize == 0 && !BackColor.IsEmpty
+            ? BackColor
+            : Parent?.BackColor ?? UiTheme.Background;
+        e.Graphics.Clear(cornerSurface);
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        // ButtonBase can mark itself Opaque and skip OnPaintBackground,
-        // especially for WM_PRINT/DrawToBitmap. Always initialize the corners.
         OnPaintBackground(e);
         if (Width < 2 || Height < 2) return;
         bool pressed = Enabled && ((_mousePressed && _hovered) || _keyPressed);
-        Color background = !Enabled ? UiTheme.Background : pressed
+        bool isPrimary = BackColor == UiTheme.Accent;
+        Color background = !Enabled ? UiTheme.SurfaceMuted : pressed
             ? FlatAppearance.MouseDownBackColor : _hovered
             ? FlatAppearance.MouseOverBackColor : BackColor;
         if (background.IsEmpty) background = BackColor;
         Color foreground = Enabled ? ForeColor : UiTheme.DisabledText;
-        Color borderColor = Enabled ? FlatAppearance.BorderColor : UiTheme.Border;
-        float radius = Math.Min(UiTheme.Scale(8, DeviceDpi), (Math.Min(Width, Height) - 1) / 2F);
+        Color borderColor = !Enabled ? UiTheme.Border : isPrimary
+            ? pressed ? UiTheme.AccentPressed : _hovered ? UiTheme.AccentHover : UiTheme.Accent
+            : _hovered && ForeColor != UiTheme.Error ? Color.FromArgb(190, 190, 196)
+            : FlatAppearance.BorderColor;
+        float radius = Math.Min(UiTheme.Scale(7, DeviceDpi), (Math.Min(Width, Height) - 1) / 2F);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+        bool hasBorder = FlatAppearance.BorderSize > 0;
+        float fillInset = hasBorder ? 0.5F : 0F;
         using (var fill = new SolidBrush(background))
-            e.Graphics.FillRoundedRectangle(fill, 0.5F, 0.5F, Width - 1, Height - 1, radius);
-        if (FlatAppearance.BorderSize > 0)
+            e.Graphics.FillRoundedRectangle(fill, fillInset, fillInset, Width - fillInset * 2, Height - fillInset * 2, radius);
+
+        if (hasBorder)
         {
-            // One physical pixel, wholly inside the client area at every DPI.
             using var border = new Pen(borderColor);
             e.Graphics.DrawRoundedRectangle(border, 0.5F, 0.5F, Width - 1, Height - 1, radius);
         }
@@ -56,7 +62,7 @@ internal sealed class RoundedButton : Button
         else if (!ShowKeyboardCues) flags |= TextFormatFlags.HidePrefix;
         Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextRenderer.MeasureText(e.Graphics, Text, Font,
             Size.Empty, flags);
-        int gap = Image is not null && textSize.Width > 0 ? UiTheme.Scale(4, DeviceDpi) : 0;
+        int gap = Image is not null && textSize.Width > 0 ? UiTheme.Scale(5, DeviceDpi) : 0;
         int imageWidth = Image?.Width ?? 0;
         int groupWidth = imageWidth + gap + textSize.Width;
         int left = content.Left + (content.Width - groupWidth) / 2;
@@ -73,7 +79,7 @@ internal sealed class RoundedButton : Button
         if (Focused && ShowFocusCues)
         {
             int inset = UiTheme.Scale(3, DeviceDpi);
-            using var focus = new Pen(ForeColor == UiTheme.AccentText ? ForeColor : UiTheme.Accent)
+            using var focus = new Pen(ForeColor == UiTheme.AccentText ? Color.FromArgb(180, 255, 255, 255) : UiTheme.Text)
                 { DashStyle = DashStyle.Dot };
             e.Graphics.DrawRoundedRectangle(focus, inset + 0.5F, inset + 0.5F,
                 Width - inset * 2 - 1, Height - inset * 2 - 1, Math.Max(1, radius - inset));

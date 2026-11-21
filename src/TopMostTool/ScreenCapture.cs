@@ -14,6 +14,12 @@ internal static class ScreenCapture
                 CopyPixelOperation.SourceCopy);
             return bitmap;
         }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            using Graphics graphics = Graphics.FromImage(bitmap);
+            graphics.Clear(Color.FromArgb(24, 25, 32));
+            return bitmap;
+        }
         catch
         {
             bitmap.Dispose();

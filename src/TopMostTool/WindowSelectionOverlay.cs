@@ -1,3 +1,4 @@
+using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
 namespace TopMostTool;
@@ -41,21 +42,25 @@ internal sealed class WindowSelectionOverlay : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         if (_desktop is not null) e.Graphics.DrawImageUnscaled(_desktop, Point.Empty);
-        using var shade = new SolidBrush(Color.FromArgb(72, 12, 18, 22));
+        using var shade = new SolidBrush(Color.FromArgb(88, 16, 16, 18));
         using var outside = new Region(ClientRectangle);
         if (!_candidate.IsEmpty) outside.Exclude(_candidate);
         e.Graphics.FillRegion(shade, outside);
         if (!_candidate.IsEmpty)
         {
-            using var border = new Pen(UiTheme.Accent, UiTheme.Scale(3, DeviceDpi));
-            e.Graphics.DrawRectangle(border, _candidate);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (var highlight = new SolidBrush(Color.FromArgb(18, 255, 255, 255)))
+                e.Graphics.FillRectangle(highlight, _candidate);
+            using (var border = new Pen(Color.White, UiTheme.Scale(2, DeviceDpi)))
+                e.Graphics.DrawRectangle(border, _candidate);
         }
         Rectangle safe = Screen.FromPoint(PointToScreen(_pointer)).Bounds;
         safe.Offset(-Left, -Top);
         safe.Intersect(ClientRectangle);
         if (safe.IsEmpty) safe = ClientRectangle;
-        int gap = UiTheme.Scale(16, DeviceDpi);
-        UiTheme.DrawOverlayHint(e.Graphics, "窗口置顶 · 点击要置顶的应用窗口\n右键或 Esc 取消", new Point(safe.Left + gap, safe.Top + gap), safe, DeviceDpi);
+        int gap = UiTheme.Scale(14, DeviceDpi);
+        UiTheme.DrawOverlayHint(e.Graphics, "点击要置顶的窗口  ·  右键或 Esc 取消",
+            new Point(safe.Left + gap, safe.Top + gap), safe, DeviceDpi);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)

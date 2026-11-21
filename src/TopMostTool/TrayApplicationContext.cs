@@ -21,15 +21,21 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _menu;
+    private readonly TrayPopoverForm _popover;
     private readonly ToolStripMenuItem _countItem;
     private readonly ToolStripMenuItem _managedWindowsMenu;
     private readonly ToolStripMenuItem _unpinAllWindowsMenu;
     private readonly ToolStripMenuItem _screenshotsMenu;
     private readonly ToolStripMenuItem _startupItem;
     private readonly ToolStripMenuItem _captureItem;
-    private readonly ToolStripMenuItem _feedbackItem = new() { Enabled = false, Visible = false };
+    private readonly ToolStripMenuItem _selectWindowItem;
+    private readonly ToolStripMenuItem _shortcutItem;
+    private readonly ToolStripMenuItem _aboutItem;
+    private readonly ToolStripMenuItem _exitItem;
+    private readonly ToolStripMenuItem _feedbackItem = new() { Enabled = false, Visible = false, Name = "ErrorStatus" };
     private Action? _feedbackAction;
     private Image _pinMenuImage;
+    private readonly Dictionary<UiIcon, Image> _menuImages = new();
     private readonly Dictionary<IntPtr, PinnedBadgeWindow> _badges = new();
     private readonly List<PinnedImageWindow> _screenshots = new();
     private readonly ConfigStore _configStore;
@@ -79,9 +85,19 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _screenshotsMenu.Click += (_, _) => CloseAllScreenshots();
         _captureItem = new ToolStripMenuItem("截图贴图")
         {
-            Image = _pinMenuImage,
             ShowShortcutKeys = false,
             ToolTipText = "拖动框选屏幕区域，松开生成贴图；右键或 Esc 取消"
+        };
+        _selectWindowItem = new ToolStripMenuItem("选择窗口置顶")
+        {
+            ToolTipText = "点击要置顶的应用窗口；右键或 Esc 取消"
+        };
+        _shortcutItem = new ToolStripMenuItem("快捷键设置");
+        _aboutItem = new ToolStripMenuItem("关于");
+        _exitItem = new ToolStripMenuItem("退出")
+        {
+            Name = "DangerAction", ForeColor = UiTheme.Text,
+            ToolTipText = "取消窗口置顶并关闭全部贴图；请先保存需要的图片"
         };
         _startupItem = new ToolStripMenuItem("开机启动")
         {
@@ -89,8 +105,25 @@ internal sealed class TrayApplicationContext : ApplicationContext
         };
 
         _menu = BuildMenu();
-        _notifyIcon.ContextMenuStrip = _menu;
-        _notifyIcon.DoubleClick += (_, _) => ToggleLastExternalWindow();
+        _popover = new TrayPopoverForm(
+            captureAction: () => _ = CaptureAndPinAsync(),
+            selectWindowAction: BeginWindowSelection,
+            unpinWindowAction: UnpinSpecificWindow,
+            unpinAllAction: UnpinAllWindows,
+            closeAllScreenshotsAction: CloseAllScreenshots,
+            shortcutSettingsAction: ShowShortcutSettings,
+            toggleStartupAction: ToggleStartup,
+            aboutAction: ShowAbout,
+            exitAction: ExitThread,
+            errorAction: () => _feedbackAction?.Invoke());
+        _notifyIcon.MouseUp += (_, e) =>
+        {
+            if (e.Button is MouseButtons.Left or MouseButtons.Right)
+            {
+                RefreshMenuState();
+                _popover.ToggleAtTray(Cursor.Position, CreatePopoverSnapshot());
+            }
+        };
         _notifyIcon.BalloonTipClicked += (_, _) => { };
 
         _hotKeyWindow.HotKeyPressed += OnHotKeyPressed;
@@ -118,15 +151,17 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         var menu = new ContextMenuStrip
         {
-            ShowImageMargin = true,
+            Name = "TrayMenu", ShowImageMargin = true,
             Font = new Font("Segoe UI", 9F)
         };
         UiTheme.StyleMenu(menu);
-        menu.HandleCreated += (_, _) => RefreshPinMenuImage(menu);
-        menu.DpiChangedAfterParent += (_, _) => RefreshPinMenuImage(menu);
-        menu.Opening += (_, _) => RefreshPinMenuImage(menu);
+        menu.HandleCreated += (_, _) => RefreshMenuImages(menu);
+        menu.DpiChangedAfterParent += (_, _) => RefreshMenuImages(menu);
+        menu.Opening += (_, _) => RefreshMenuImages(menu);
         menu.Opening += (_, _) => RefreshMenuState();
 
+        _countItem.Name = "StatusHeader";
+        _countItem.AccessibleName = "当前窗口和贴图状态";
         menu.Items.Add(_countItem);
         UiTheme.StyleMenuItem(_countItem);
         menu.Items.Add(new ToolStripSeparator());
@@ -135,10 +170,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         UiTheme.StyleMenuItem(_captureItem, emphasized: true);
         menu.Items.Add(_captureItem);
 
-        var selectWindow = new ToolStripMenuItem("选择窗口置顶") { Image = _pinMenuImage, ToolTipText = "点击要置顶的应用窗口；右键或 Esc 取消" };
-        selectWindow.Click += (_, _) => BeginWindowSelection();
-        UiTheme.StyleMenuItem(selectWindow, emphasized: true);
-        menu.Items.Add(selectWindow);
+        _selectWindowItem.Click += (_, _) => BeginWindowSelection();
+        UiTheme.StyleMenuItem(_selectWindowItem, emphasized: true);
+        menu.Items.Add(_selectWindowItem);
         menu.Items.Add(new ToolStripSeparator());
         UiTheme.StyleMenuItem(_screenshotsMenu);
         menu.Items.Add(_screenshotsMenu);
@@ -177,25 +211,23 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _feedbackItem.Click += (_, _) => _feedbackAction?.Invoke();
         menu.Items.Add(_feedbackItem);
 
-        var shortcutItem = new ToolStripMenuItem("快捷键设置");
-        shortcutItem.Click += (_, _) => ShowShortcutSettings();
-        UiTheme.StyleMenuItem(shortcutItem);
-        menu.Items.Add(shortcutItem);
+        _shortcutItem.Click += (_, _) => ShowShortcutSettings();
+        UiTheme.StyleMenuItem(_shortcutItem);
+        menu.Items.Add(_shortcutItem);
 
         _startupItem.Click += (_, _) => ToggleStartup();
         UiTheme.StyleMenuItem(_startupItem);
         menu.Items.Add(_startupItem);
 
         menu.Items.Add(new ToolStripSeparator());
-        var aboutItem = new ToolStripMenuItem("关于");
-        aboutItem.Click += (_, _) => ShowAbout();
-        UiTheme.StyleMenuItem(aboutItem);
-        menu.Items.Add(aboutItem);
+        _aboutItem.Click += (_, _) => ShowAbout();
+        UiTheme.StyleMenuItem(_aboutItem);
+        menu.Items.Add(_aboutItem);
 
-        var exitItem = new ToolStripMenuItem("退出") { ToolTipText = "取消窗口置顶并关闭全部贴图；请先保存需要的图片" };
-        exitItem.Click += (_, _) => ExitThread();
-        UiTheme.StyleMenuItem(exitItem);
-        menu.Items.Add(exitItem);
+        _exitItem.Click += (_, _) => ExitThread();
+        UiTheme.StyleMenuItem(_exitItem);
+        menu.Items.Add(_exitItem);
+        RefreshMenuImages(menu);
         return menu;
     }
 
@@ -212,16 +244,39 @@ internal sealed class TrayApplicationContext : ApplicationContext
         return image;
     }
 
-    private void RefreshPinMenuImage(ContextMenuStrip menu)
+    private Image MenuIcon(UiIcon icon, int dpi)
+    {
+        int size = UiTheme.Scale(UiTheme.IconSize, dpi);
+        if (_menuImages.TryGetValue(icon, out Image? current) && current.Width == size)
+            return current;
+        Image replacement = UiIconFactory.Create(icon, size);
+        _menuImages[icon] = replacement;
+        current?.Dispose();
+        return replacement;
+    }
+
+    private void RefreshMenuImages(ContextMenuStrip menu)
     {
         int size = UiTheme.Scale(UiTheme.IconSize, menu.DeviceDpi);
-        if (_pinMenuImage.Width == size) return;
-        Image previous = _pinMenuImage;
-        _pinMenuImage = CreatePinMenuImage(menu.DeviceDpi);
-        foreach (ToolStripMenuItem item in menu.Items.OfType<ToolStripMenuItem>()
-            .Concat(_managedWindowsMenu.DropDownItems.OfType<ToolStripMenuItem>()))
-            if (ReferenceEquals(item.Image, previous)) item.Image = _pinMenuImage;
-        previous.Dispose();
+        if (_pinMenuImage.Width != size)
+        {
+            Image previous = _pinMenuImage;
+            _pinMenuImage = CreatePinMenuImage(menu.DeviceDpi);
+            foreach (ToolStripMenuItem item in menu.Items.OfType<ToolStripMenuItem>()
+                .Concat(_managedWindowsMenu.DropDownItems.OfType<ToolStripMenuItem>()))
+                if (ReferenceEquals(item.Image, previous)) item.Image = _pinMenuImage;
+            previous.Dispose();
+        }
+        _countItem.Image = _pinMenuImage;
+        _captureItem.Image = MenuIcon(UiIcon.Screenshot, menu.DeviceDpi);
+        _selectWindowItem.Image = MenuIcon(UiIcon.SelectWindow, menu.DeviceDpi);
+        _screenshotsMenu.Image = MenuIcon(UiIcon.CloseScreenshots, menu.DeviceDpi);
+        _managedWindowsMenu.Image = MenuIcon(UiIcon.UnpinWindow, menu.DeviceDpi);
+        _unpinAllWindowsMenu.Image = MenuIcon(UiIcon.UnpinAll, menu.DeviceDpi);
+        _shortcutItem.Image = MenuIcon(UiIcon.Settings, menu.DeviceDpi);
+        _aboutItem.Image = MenuIcon(UiIcon.About, menu.DeviceDpi);
+        _exitItem.Image = MenuIcon(UiIcon.Exit, menu.DeviceDpi);
+        _feedbackItem.Image = MenuIcon(UiIcon.Error, menu.DeviceDpi);
     }
 
     private void RegisterHotKeys(string? loadWarning)
@@ -342,6 +397,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         if (_capturePending) return;
         _menu.Close();
+        _popover.Hide();
         _selectionOverlay.BeginSelection();
     }
 
@@ -352,6 +408,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         try
         {
             _menu.Close();
+            _popover.Hide();
             _selectionOverlay.Hide();
             // Let the tray menu disappear before freezing the desktop.
             await Task.Delay(180);
@@ -452,6 +509,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var emptyItem = new ToolStripMenuItem("暂无置顶窗口") { Enabled = false };
             UiTheme.StyleMenuItem(emptyItem);
             _managedWindowsMenu.DropDownItems.Add(emptyItem);
+            SyncPopoverIfVisible();
             return;
         }
 
@@ -469,22 +527,41 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 ToolTipText = $"已置顶：{window.Title}"
             };
             UiTheme.StyleMenuItem(item);
-            item.Click += (_, _) =>
-            {
-                if (!_windowManager.TryUnpinManaged((IntPtr)item.Tag!, out string error))
-                {
-                    ShowMenuError(MenuErrorKind.WindowUnpin, error);
-                    return;
-                }
-
-                _config.LastAction = "UnpinSpecific";
-                SaveConfigSilently();
-                Notify("窗口已取消置顶", ToolTipIcon.Info);
-                ClearMenuError();
-                RefreshMenuState();
-            };
+            item.Click += (_, _) => UnpinSpecificWindow((IntPtr)item.Tag!);
             _managedWindowsMenu.DropDownItems.Add(item);
         }
+        SyncPopoverIfVisible();
+    }
+
+    private void UnpinSpecificWindow(IntPtr handle)
+    {
+        if (!_windowManager.TryUnpinManaged(handle, out string error))
+        {
+            ShowMenuError(MenuErrorKind.WindowUnpin, error);
+            return;
+        }
+
+        _config.LastAction = "UnpinSpecific";
+        SaveConfigSilently();
+        Notify("窗口已取消置顶", ToolTipIcon.Info);
+        ClearMenuError();
+        RefreshMenuState();
+    }
+
+    internal TrayPopoverSnapshot CreatePopoverSnapshot() => new(
+        ManagedWindows: _windowManager.GetManagedWindows(),
+        ScreenshotCount: _screenshots.Count,
+        StartWithWindows: _config.StartWithWindows,
+        WindowShortcut: _config.Shortcut,
+        ScreenshotShortcut: _config.ScreenshotShortcut,
+        ErrorTitle: _feedbackItem.Visible ? _feedbackItem.Text : null,
+        ErrorDetail: _feedbackItem.Visible ? _feedbackItem.ToolTipText : null,
+        HasErrorAction: _feedbackAction is not null);
+
+    private void SyncPopoverIfVisible()
+    {
+        if (_popover is { IsDisposed: false, Visible: true })
+            _popover.UpdateSnapshot(CreatePopoverSnapshot());
     }
 
     private static void ClearMenuItems(ToolStripMenuItem menu)
@@ -698,6 +775,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _feedbackItem.AccessibleName = $"{_feedbackItem.Text}：{detail}";
         _feedbackItem.Enabled = true;
         _feedbackItem.Visible = true;
+        SyncPopoverIfVisible();
     }
 
     private void ClearMenuError()
@@ -708,6 +786,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _feedbackItem.Text = string.Empty;
         _feedbackItem.ToolTipText = string.Empty;
         _feedbackItem.AccessibleName = "操作失败详情";
+        SyncPopoverIfVisible();
     }
 
     private void SaveConfigSilently()
@@ -753,6 +832,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
 
         _isExiting = true;
+        _popover.Close();
         _aboutForm?.Close();
         _screenshotOverlay?.Close();
         foreach (PinnedImageWindow image in _screenshots.ToArray()) image.Close();
@@ -772,8 +852,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (_screenshotHotKeyRegistered) _hotKeyWindow.Unregister(ScreenshotHotKeyId);
         _hotKeyWindow.Dispose();
         _selectionOverlay.Dispose();
+        _popover.Dispose();
         _menu.Dispose();
         _pinMenuImage.Dispose();
+        foreach (Image image in _menuImages.Values) image.Dispose();
+        _menuImages.Clear();
         _notifyIcon.Visible = false;
         _notifyIcon.Icon?.Dispose();
         _notifyIcon.Dispose();

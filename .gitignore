@@ -3,6 +3,7 @@
 **/obj/
 **/artifacts/
 /artifacts/
+/backups/
 /publish/
 /TestResults/
 *.binlog

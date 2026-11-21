@@ -1,28 +1,56 @@
+using System.Drawing.Drawing2D;
+
 namespace TopMostTool;
 
 internal static class UiTheme
 {
-    // One stable light palette. High contrast uses the user's system colors.
-    internal static Color Background => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(246, 247, 248);
+    // Pure Apple / CleanShot X minimalist light palette: calm neutral surfaces,
+    // whisper-thin hairlines, disciplined monochrome ink, zero decorative color noise.
+    internal static Color Background => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(245, 245, 247);
     internal static Color Surface => SystemInformation.HighContrast ? SystemColors.Window : Color.White;
-    internal static Color Text => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(32, 38, 43);
-    internal static Color MutedText => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(91, 101, 110);
-    internal static Color DisabledText => SystemInformation.HighContrast ? SystemColors.GrayText : Color.FromArgb(128, 135, 142);
-    internal static Color Border => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(218, 224, 228);
-    internal static Color Accent => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(0, 112, 110);
+    internal static Color SurfaceMuted => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(238, 238, 241);
+    internal static Color SurfaceSubtle => SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(250, 250, 252);
+    internal static Color SurfaceElevated => SystemInformation.HighContrast ? SystemColors.Window : Color.White;
+    internal static Color Input => SystemInformation.HighContrast ? SystemColors.Window : Color.FromArgb(245, 245, 247);
+    internal static Color Text => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(29, 29, 31);
+    internal static Color MutedText => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(110, 110, 115);
+    internal static Color DisabledText => SystemInformation.HighContrast ? SystemColors.GrayText : Color.FromArgb(174, 174, 178);
+    internal static Color Border => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(214, 214, 219);
+    internal static Color BorderSubtle => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(234, 234, 238);
+    internal static Color Accent => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(29, 29, 31);
+    internal static Color AccentHover => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(52, 52, 56);
+    internal static Color AccentPressed => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(12, 12, 14);
+    internal static Color AccentSoft => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(239, 239, 242);
     internal static Color AccentText => SystemInformation.HighContrast ? SystemColors.HighlightText : Color.White;
-    internal static Color Hover => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(228, 241, 239);
-    internal static Color Pressed => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(207, 229, 225);
-    internal static Color Error => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(174, 37, 47);
-    internal static Color DangerHover => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(253, 229, 230);
+    internal static Color Hover => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(239, 239, 242);
+    internal static Color Pressed => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(228, 228, 233);
+    internal static Color Error => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(217, 48, 37);
+    internal static Color ErrorSoft => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(253, 242, 242);
+    internal static Color ErrorBorder => SystemInformation.HighContrast ? SystemColors.WindowText : Color.FromArgb(245, 208, 206);
+    internal static Color DangerHover => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(252, 232, 230);
+    internal static Color Success => SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(30, 142, 62);
+    internal static Color SuccessSoft => SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(245, 245, 247);
+
     internal static readonly Font MenuFont = new(SystemFonts.MessageBoxFont!.FontFamily, Math.Max(9F, SystemFonts.MessageBoxFont.Size));
+    internal static readonly Font CaptionFont = new(MenuFont.FontFamily, Math.Max(8.5F, MenuFont.Size - 0.5F));
+    internal static readonly Font CaptionBoldFont = new(MenuFont.FontFamily, Math.Max(8.5F, MenuFont.Size - 0.5F), FontStyle.Bold);
     internal static readonly Font EmphasisFont = new(MenuFont, FontStyle.Bold);
-    internal static readonly Font HeadingFont = new(MenuFont.FontFamily, MenuFont.Size + 7F, FontStyle.Bold);
+    internal static readonly Font HeadingFont = new(MenuFont.FontFamily, MenuFont.Size + 6.5F, FontStyle.Bold);
+    internal static readonly Font DisplayFont = new(MenuFont.FontFamily, MenuFont.Size + 9.5F, FontStyle.Bold);
+
     internal const int IconSize = 20;
-    internal const int ButtonHeight = 36;
+    internal const int ButtonHeight = 34;
     internal const int Spacing = 8;
     internal const int PagePadding = 24;
     internal const int CornerRadius = 10;
+
+    internal static string AppVersionLabel { get; } = FormatAppVersion();
+
+    private static string FormatAppVersion()
+    {
+        Version? version = typeof(UiTheme).Assembly.GetName().Version;
+        return version is null ? "v2.0.0" : $"v{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}";
+    }
 
     internal static int Scale(int value, int dpi) => Math.Max(1, (int)Math.Round(value * dpi / 96.0));
 
@@ -34,7 +62,7 @@ internal static class UiTheme
         menu.ShowItemToolTips = true;
         menu.AutoSize = true;
         menu.Font = MenuFont;
-        menu.Padding = new Padding(3);
+        menu.Padding = new Padding(5);
         ApplyRoundedCorners(menu, CornerRadius);
         menu.Opening += (_, _) => RefreshMenuMetrics(menu);
         menu.DpiChangedAfterParent += (_, _) => RefreshMenuMetrics(menu);
@@ -44,12 +72,12 @@ internal static class UiTheme
     internal static void RefreshMenuMetrics(ToolStripDropDownMenu menu)
     {
         int dpi = menu.DeviceDpi;
-        menu.Padding = new Padding(Scale(3, dpi));
+        menu.Padding = new Padding(Scale(4, dpi));
         menu.ImageScalingSize = new Size(Scale(IconSize, dpi), Scale(IconSize, dpi));
         foreach (ToolStripItem item in menu.Items)
         {
             if (item is ToolStripMenuItem menuItem)
-                menuItem.Padding = new Padding(Scale(10, dpi), Scale(5, dpi), Scale(12, dpi), Scale(5, dpi));
+                menuItem.Padding = new Padding(Scale(8, dpi), Scale(4, dpi), Scale(14, dpi), Scale(4, dpi));
             else if (item is ToolStripSeparator separator)
                 StyleSeparator(separator);
         }
@@ -57,18 +85,14 @@ internal static class UiTheme
 
     internal static void StyleMenuItem(ToolStripMenuItem item, bool emphasized = false)
     {
-        // ToolStrip measures the text itself. Fixed-width items can collapse to the
-        // image column on high-DPI Windows configurations.
         item.AutoSize = true;
         item.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
         item.TextImageRelation = TextImageRelation.ImageBeforeText;
         item.TextAlign = ContentAlignment.MiddleLeft;
         item.ImageAlign = ContentAlignment.MiddleCenter;
         item.ImageScaling = ToolStripItemImageScaling.None;
-        // Keep one consistent vertical rhythm for regular and emphasized rows;
-        // the renderer then centers the visible glyph pixels in that row.
-        item.Padding = new Padding(10, 5, 12, 5);
-        item.Margin = new Padding(0, 0, 0, 0);
+        item.Padding = new Padding(10, 6, 12, 6);
+        item.Margin = Padding.Empty;
         item.Font = emphasized ? EmphasisFont : MenuFont;
         item.DropDownDirection = ToolStripDropDownDirection.Right;
         item.ShowShortcutKeys = false;
@@ -77,7 +101,7 @@ internal static class UiTheme
     internal static void StyleSeparator(ToolStripSeparator separator)
     {
         separator.AutoSize = false;
-        separator.Height = Scale(8, separator.GetCurrentParent()?.DeviceDpi ?? 96);
+        separator.Height = Scale(9, separator.GetCurrentParent()?.DeviceDpi ?? 96);
         separator.Margin = Padding.Empty;
     }
 
@@ -90,24 +114,62 @@ internal static class UiTheme
         form.Font = MenuFont;
         form.Icon = TrayIconFactory.Create();
         ApplyRoundedCorners(form, CornerRadius);
+        EventHandler applyDialogChrome = (_, _) => ApplyDialogChrome(form);
+        form.HandleCreated += applyDialogChrome;
+        form.DpiChangedAfterParent += applyDialogChrome;
+        if (form.IsHandleCreated) ApplyDialogChrome(form);
     }
+
+    private static void ApplyDialogChrome(Form form)
+    {
+        if (!form.IsHandleCreated || SystemInformation.HighContrast ||
+            form.FormBorderStyle is FormBorderStyle.None or FormBorderStyle.FixedToolWindow or FormBorderStyle.SizableToolWindow)
+            return;
+        int darkMode = 0;
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaUseImmersiveDarkMode, ref darkMode, sizeof(int));
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaUseImmersiveDarkModeBefore20H1, ref darkMode, sizeof(int));
+        // Seamlessly blend the native Windows 11 title bar into the #F5F5F7 canvas.
+        int caption = ColorRef(Background), text = ColorRef(Text), border = ColorRef(Border);
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaCaptionColor, ref caption, sizeof(int));
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaTextColor, ref text, sizeof(int));
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaBorderColor, ref border, sizeof(int));
+        int corners = NativeMethods.DwmWindowCornerRound;
+        NativeMethods.DwmSetWindowAttribute(form.Handle, NativeMethods.DwmwaWindowCornerPreference, ref corners, sizeof(int));
+    }
+
+    private static int ColorRef(Color color) => color.R | (color.G << 8) | (color.B << 16);
 
     internal static void StyleButton(RoundedButton button, bool primary = false, bool danger = false)
     {
-        button.Font = MenuFont;
+        button.Font = primary ? EmphasisFont : MenuFont;
         button.FlatStyle = FlatStyle.Flat;
         button.UseVisualStyleBackColor = false;
         button.BackColor = primary ? Accent : Surface;
-        button.ForeColor = primary ? AccentText : Text;
+        button.ForeColor = primary ? AccentText : danger ? Error : Text;
         button.FlatAppearance.BorderSize = 1;
         button.FlatAppearance.BorderColor = primary ? Accent : Border;
-        button.FlatAppearance.MouseOverBackColor = danger ? DangerHover : primary ? Accent : Hover;
-        button.FlatAppearance.MouseDownBackColor = danger ? DangerHover : primary ? Accent : Pressed;
+        button.FlatAppearance.MouseOverBackColor = danger ? DangerHover : primary ? AccentHover : Hover;
+        button.FlatAppearance.MouseDownBackColor = danger ? DangerHover : primary ? AccentPressed : Pressed;
         button.Cursor = Cursors.Hand;
         button.AutoSize = true;
         button.MinimumSize = new Size(80, ButtonHeight);
-        button.Padding = new Padding(10, 4, 10, 4);
+        button.Padding = new Padding(14, 5, 14, 5);
         button.Margin = new Padding(4);
+    }
+
+    internal static void StyleModifier(ModifierKeyCap checkBox)
+    {
+        checkBox.Appearance = Appearance.Button;
+        checkBox.AutoSize = false;
+        checkBox.TextAlign = ContentAlignment.MiddleCenter;
+        checkBox.BackColor = Surface;
+        checkBox.ForeColor = Text;
+        checkBox.FlatStyle = FlatStyle.Flat;
+        checkBox.FlatAppearance.BorderSize = 0;
+        checkBox.Cursor = Cursors.Hand;
+        checkBox.Padding = new Padding(10, 4, 10, 4);
+        checkBox.Margin = Padding.Empty;
+        checkBox.MinimumSize = Size.Empty;
     }
 
     internal static void StyleCard(Control card, int radius = CornerRadius)
@@ -117,8 +179,8 @@ internal static class UiTheme
         card.Paint += (_, e) =>
         {
             if (card.Width <= 1 || card.Height <= 1) return;
-            using var pen = new Pen(Border);
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var pen = new Pen(BorderSubtle);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.DrawRoundedRectangle(pen, 0.5F, 0.5F, card.Width - 1, card.Height - 1, Scale(radius, card.DeviceDpi));
         };
     }
@@ -148,8 +210,6 @@ internal static class UiTheme
             NativeMethods.DwmwaWindowCornerPreference, ref preference, sizeof(int));
         if (result == 0)
         {
-            // Remove a previous compatibility region once DWM is available so
-            // the native shadow and resize frame remain intact.
             if (control is Form or ToolStripDropDown)
                 NativeMethods.SetWindowRgn(control.Handle, IntPtr.Zero, true);
             return;
@@ -174,7 +234,7 @@ internal static class UiTheme
     {
         if (control.Width <= 0 || control.Height <= 0) return;
         int size = Scale(radius, control.DeviceDpi);
-        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        using var path = new GraphicsPath();
         float diameter = size * 2F;
         path.AddArc(0, 0, diameter, diameter, 180, 90);
         path.AddArc(control.Width - diameter, 0, diameter, diameter, 270, 90);
@@ -204,22 +264,40 @@ internal static class UiTheme
 
     internal static void DrawOverlayHint(Graphics graphics, string text, Point location, Rectangle safeArea, int dpi)
     {
-        int pad = Scale(12, dpi);
+        int padX = Scale(14, dpi);
+        int padY = Scale(10, dpi);
+        const TextFormatFlags flags = TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak;
         Size size = TextRenderer.MeasureText(graphics, text, MenuFont,
-            new Size(Math.Max(1, safeArea.Width - pad * 2), int.MaxValue), TextFormatFlags.NoPrefix);
-        Size box = new(Math.Min(safeArea.Width, size.Width + pad * 2), Math.Min(safeArea.Height, size.Height + pad * 2));
+            new Size(Math.Max(1, safeArea.Width - padX * 2), int.MaxValue), flags);
+        Size box = new(
+            Math.Min(safeArea.Width, size.Width + padX * 2),
+            Math.Min(safeArea.Height, size.Height + padY * 2));
         int x = Math.Clamp(location.X, safeArea.Left, Math.Max(safeArea.Left, safeArea.Right - box.Width));
         int y = Math.Clamp(location.Y, safeArea.Top, Math.Max(safeArea.Top, safeArea.Bottom - box.Height));
-        using var brush = new SolidBrush(Color.FromArgb(242, 28, 35, 40));
-        graphics.FillRoundedRectangle(brush, x, y, box.Width, box.Height, Scale(6, dpi));
-        TextRenderer.DrawText(graphics, text, MenuFont, new Rectangle(x + pad, y + pad, box.Width - pad * 2, box.Height - pad * 2),
-            Color.White, TextFormatFlags.NoPrefix);
+        int radius = Scale(10, dpi);
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+        // Soft diffused shadow
+        using (var shadow = new SolidBrush(Color.FromArgb(46, 0, 0, 0)))
+            graphics.FillRoundedRectangle(shadow, x, y + Scale(2, dpi), box.Width, box.Height, radius);
+
+        // Clean Apple translucent dark HUD pill
+        using (var brush = new SolidBrush(Color.FromArgb(234, 28, 28, 30)))
+            graphics.FillRoundedRectangle(brush, x, y, box.Width, box.Height, radius);
+
+        // Whisper-thin frost rim
+        using (var border = new Pen(Color.FromArgb(48, 255, 255, 255)))
+            graphics.DrawRoundedRectangle(border, x + 0.5F, y + 0.5F, box.Width - 1, box.Height - 1, radius);
+
+        TextRenderer.DrawText(graphics, text, MenuFont,
+            new Rectangle(x + padX, y + padY, box.Width - padX * 2, box.Height - padY * 2),
+            Color.FromArgb(245, 245, 247), flags);
     }
 
     private sealed class MenuColorTable : ProfessionalColorTable
     {
         public override Color MenuBorder => Border;
-        public override Color MenuItemBorder => Accent;
+        public override Color MenuItemBorder => Border;
         public override Color MenuItemSelected => Hover;
         public override Color MenuItemSelectedGradientBegin => Hover;
         public override Color MenuItemSelectedGradientEnd => Hover;
@@ -229,7 +307,7 @@ internal static class UiTheme
         public override Color ImageMarginGradientMiddle => Surface;
         public override Color ImageMarginGradientEnd => Surface;
         public override Color ToolStripDropDownBackground => Surface;
-        public override Color SeparatorDark => Border;
+        public override Color SeparatorDark => BorderSubtle;
         public override Color SeparatorLight => Surface;
     }
 
@@ -250,19 +328,16 @@ internal static class UiTheme
                 Font font = e.TextFont ?? MenuFont;
                 Rectangle bounds = e.TextRectangle;
                 var ink = MeasureTextInk(e.Graphics, e.Text ?? string.Empty, font, bounds.Width);
-                // ToolStrip translates Graphics to the current item's origin.
-                // Center the visible ink in that local row, not in the native
-                // text rectangle (which includes font leading and menu padding).
                 int rowHeight = e.Item.Height > 0 ? e.Item.Height : bounds.Height;
+                int centeredTop = (rowHeight - ink.Height) / 2;
                 Rectangle textBounds = new(bounds.Left,
-                    (int)Math.Round((rowHeight - ink.Height) / 2.0) - ink.Top,
+                    centeredTop - ink.Top,
                     bounds.Width, ink.LayoutHeight);
-                // GDI's visible glyphs retain a small amount of lower-side
-                // antialiasing even after the ink bounds are centered. Apply
-                // one device pixel so submenu and top-level rows share the
-                // same optical baseline.
-                textBounds.Y += 1;
-                Color textColor = !e.Item.Enabled ? DisabledText
+                bool statusHeader = e.Item.Name == "StatusHeader";
+                bool errorStatus = e.Item.Name == "ErrorStatus";
+                Color textColor = statusHeader ? MutedText
+                    : errorStatus ? Error
+                    : !e.Item.Enabled ? DisabledText
                     : SystemInformation.HighContrast && e.Item.Selected ? SystemColors.HighlightText
                     : e.TextFormat.HasFlag(TextFormatFlags.Right) ? MutedText : e.TextColor;
                 TextRenderer.DrawText(e.Graphics, e.Text, font, textBounds, textColor,
@@ -277,17 +352,95 @@ internal static class UiTheme
 
         protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
         {
+            bool statusHeader = e.Item.Name == "StatusHeader";
+            bool errorStatus = e.Item.Name == "ErrorStatus";
+            int dpi = e.ToolStrip?.DeviceDpi ?? 96;
+            int width = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
+            if (statusHeader)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                int radius = Scale(6, dpi);
+                using var brush = new SolidBrush(Background);
+                e.Graphics.FillRoundedRectangle(brush, 3, 1, width - 6, e.Item.Height - 2, radius);
+                return;
+            }
+            if (errorStatus)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                int radius = Scale(6, dpi);
+                using (var brush = new SolidBrush(ErrorSoft))
+                    e.Graphics.FillRoundedRectangle(brush, 3, 1, width - 6, e.Item.Height - 2, radius);
+                using (var border = new Pen(ErrorBorder))
+                    e.Graphics.DrawRoundedRectangle(border, 3.5F, 1.5F, width - 7, e.Item.Height - 3, radius);
+                return;
+            }
+
+            // Minimalist unchecked box for startup option when disabled
+            if (e.Item is ToolStripMenuItem startupItem && startupItem.Text == "开机启动" && startupItem.Image == null)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                int boxSize = Scale(15, dpi);
+                int slotX = Scale(10, dpi);
+                int slotY = (e.Item.Height - boxSize) / 2;
+                int boxRadius = Scale(4, dpi);
+                using var boxBg = new SolidBrush(Surface);
+                e.Graphics.FillRoundedRectangle(boxBg, slotX, slotY, boxSize, boxSize, boxRadius);
+                using var boxPen = new Pen(Color.FromArgb(199, 199, 204), 1.2F);
+                e.Graphics.DrawRoundedRectangle(boxPen, slotX + 0.5F, slotY + 0.5F, boxSize - 1, boxSize - 1, boxRadius);
+            }
+
             if (!e.Item.Enabled || (!e.Item.Selected && !e.Item.Pressed)) return;
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var brush = new SolidBrush(e.Item.Pressed ? Pressed : Hover);
-            e.Graphics.FillRoundedRectangle(brush, 2, 1, e.Item.Width - 4, e.Item.Height - 2, Scale(4, e.ToolStrip?.DeviceDpi ?? 96));
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            bool isDanger = e.Item.ForeColor == Error || e.Item.Name == "DangerAction";
+            Color fill = isDanger ? DangerHover : e.Item.Pressed ? Pressed : Hover;
+            using var fillBrush = new SolidBrush(fill);
+            e.Graphics.FillRoundedRectangle(fillBrush, 3, 1, width - 6, e.Item.Height - 2, Scale(6, dpi));
+        }
+
+        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+        {
+            if (e.Item is ToolStripMenuItem)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Color arrowColor = !e.Item.Enabled ? DisabledText : e.Item.Selected ? Text : MutedText;
+                using var pen = new Pen(arrowColor, 1.4F)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round,
+                    LineJoin = LineJoin.Round
+                };
+                Rectangle bounds = e.ArrowRectangle;
+                int midX = bounds.Left + bounds.Width / 2;
+                int midY = bounds.Top + bounds.Height / 2;
+                int dpi = e.Item.GetCurrentParent()?.DeviceDpi ?? 96;
+                int size = Scale(4, dpi);
+                e.Graphics.DrawLines(pen, new[]
+                {
+                    new PointF(midX - size / 2F, midY - size),
+                    new PointF(midX + size / 2F, midY),
+                    new PointF(midX - size / 2F, midY + size)
+                });
+                return;
+            }
+            base.OnRenderArrow(e);
+        }
+
+        protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+        {
+            if (e.ToolStrip is not ToolStripDropDownMenu) { base.OnRenderToolStripBorder(e); return; }
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var border = new Pen(Border);
+            e.Graphics.DrawRoundedRectangle(border, 0.5F, 0.5F,
+                e.ToolStrip.Width - 1, e.ToolStrip.Height - 1,
+                Scale(8, e.ToolStrip.DeviceDpi));
         }
 
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
-            using var pen = new Pen(Border);
+            using var pen = new Pen(BorderSubtle);
             int inset = Scale(10, e.ToolStrip?.DeviceDpi ?? 96);
-            e.Graphics.DrawLine(pen, inset, e.Item.Height / 2, e.Item.Width - inset, e.Item.Height / 2);
+            int width = e.ToolStrip != null ? e.ToolStrip.ClientSize.Width : e.Item.Width;
+            e.Graphics.DrawLine(pen, inset, e.Item.Height / 2, width - inset, e.Item.Height / 2);
         }
 
         private (int Top, int Height, int LayoutHeight) MeasureTextInk(
@@ -319,7 +472,6 @@ internal static class UiTheme
                 }
             var metrics = bottom < top ? (0, measured.Height, measured.Height)
                 : (top, bottom - top + 1, measured.Height);
-            // Window titles and counts change; only cache a bounded set of metrics.
             if (_textMetrics.Count >= 128) _textMetrics.Clear();
             _textMetrics[key] = metrics;
             return metrics;
@@ -327,6 +479,31 @@ internal static class UiTheme
 
         protected override void OnRenderItemImage(ToolStripItemImageRenderEventArgs e)
         {
+            if (e.Item is ToolStripMenuItem startupItem && startupItem.Text == "开机启动" && e.Image is not null)
+            {
+                int dpi = e.ToolStrip?.DeviceDpi ?? 96;
+                int boxSize = Scale(15, dpi);
+                int slotX = e.ImageRectangle.Left + (e.ImageRectangle.Width - boxSize) / 2;
+                int slotY = e.ImageRectangle.Top + (e.ImageRectangle.Height - boxSize) / 2;
+                int boxRadius = Scale(4, dpi);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var checkBg = new SolidBrush(Accent))
+                    e.Graphics.FillRoundedRectangle(checkBg, slotX, slotY, boxSize, boxSize, boxRadius);
+                using var checkPen = new Pen(Color.White, 1.7F)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round,
+                    LineJoin = LineJoin.Round
+                };
+                e.Graphics.DrawLines(checkPen, new[]
+                {
+                    new PointF(slotX + boxSize * 0.24F, slotY + boxSize * 0.52F),
+                    new PointF(slotX + boxSize * 0.44F, slotY + boxSize * 0.72F),
+                    new PointF(slotX + boxSize * 0.76F, slotY + boxSize * 0.30F)
+                });
+                return;
+            }
+
             if (e.Item is ToolStripMenuItem && e.Image is not null)
             {
                 Rectangle slot = e.ImageRectangle;
@@ -344,7 +521,7 @@ internal static class UiTheme
                     slot.Top + (slot.Height - imageSize.Height) / 2,
                     imageSize.Width,
                     imageSize.Height);
-                if (!e.Item.Enabled)
+                if (!e.Item.Enabled && e.Item.Name != "StatusHeader")
                 {
                     if (centered.Size == e.Image.Size)
                         ControlPaint.DrawImageDisabled(e.Graphics, e.Image, centered.X, centered.Y, Surface);
@@ -353,8 +530,8 @@ internal static class UiTheme
                         using var fitted = new Bitmap(centered.Width, centered.Height);
                         using (Graphics graphics = Graphics.FromImage(fitted))
                         {
-                            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                            graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                            graphics.PixelOffsetMode = PixelOffsetMode.Half;
                             graphics.DrawImage(e.Image, new Rectangle(Point.Empty, fitted.Size), 0, 0,
                                 e.Image.Width, e.Image.Height, GraphicsUnit.Pixel);
                         }
@@ -366,8 +543,8 @@ internal static class UiTheme
                 else
                 {
                     var state = e.Graphics.Save();
-                    e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                    e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    e.Graphics.PixelOffsetMode = PixelOffsetMode.Half;
                     e.Graphics.DrawImage(e.Image, centered, 0, 0, e.Image.Width, e.Image.Height, GraphicsUnit.Pixel);
                     e.Graphics.Restore(state);
                 }
@@ -376,6 +553,5 @@ internal static class UiTheme
 
             base.OnRenderItemImage(e);
         }
-
     }
 }

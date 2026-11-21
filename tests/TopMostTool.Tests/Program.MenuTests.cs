@@ -34,6 +34,7 @@ internal static partial class Program
             using Bitmap screenPreview = ScreenCapture.Capture(imageMenu.Bounds);
             screenPreview.Save(Path.Combine(Artifacts, "screenshot-menu-screen.png"));
             SaveControlPreview(imageMenu, "screenshot-menu.png");
+            SaveNativeWindowPreview(imageMenu, "native-screenshot-menu.png");
             ToolStripMenuItem zoomIn = imageMenu.Items.OfType<ToolStripMenuItem>().First();
             Check(!zoomIn.ShowShortcutKeys &&
                 imageMenu.Items.OfType<ToolStripMenuItem>().All(item => !item.ShowShortcutKeys &&
@@ -68,6 +69,7 @@ internal static partial class Program
                 "enabled startup uses the tray icon without a checked background");
             menu.Show(100, 100);
             await Task.Delay(80);
+            SaveNativeWindowPreview(menu, "native-tray-menu.png", 0);
             SaveControlPreview(menu, "startup-enabled.png");
             menu.Close();
             config.StartWithWindows = false;

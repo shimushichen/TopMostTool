@@ -17,8 +17,13 @@ internal static class NativeMethods
     internal const uint DwmwaCloaked = 14;
     internal const uint DwmwaCaptionButtonBounds = 5;
     internal const uint DwmwaExtendedFrameBounds = 9;
+    internal const uint DwmwaUseImmersiveDarkMode = 20;
+    internal const uint DwmwaUseImmersiveDarkModeBefore20H1 = 19;
     // Windows 11 rounded-corner preference (DWMWA_WINDOW_CORNER_PREFERENCE).
     internal const uint DwmwaWindowCornerPreference = 33;
+    internal const uint DwmwaBorderColor = 34;
+    internal const uint DwmwaCaptionColor = 35;
+    internal const uint DwmwaTextColor = 36;
     internal const int DwmWindowCornerDefault = 0;
     internal const int DwmWindowCornerDoNotRound = 1;
     internal const int DwmWindowCornerRound = 2;
@@ -131,6 +136,10 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool ReleaseCapture();
 
     [DllImport("user32.dll")]
@@ -147,6 +156,10 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool PrintWindow(IntPtr hWnd, IntPtr dc, uint flags);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -1,3 +1,4 @@
+using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
 namespace TopMostTool;
@@ -40,7 +41,6 @@ internal sealed class ScreenshotSelectionOverlay : Form
 
     protected override void OnDpiChanged(DpiChangedEventArgs e)
     {
-        // The capture and mouse coordinates must remain in physical desktop pixels.
         e.Cancel = true;
         base.OnDpiChanged(e);
     }
@@ -48,7 +48,7 @@ internal sealed class ScreenshotSelectionOverlay : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         e.Graphics.DrawImageUnscaled(_desktop, Point.Empty);
-        using var shade = new SolidBrush(Color.FromArgb(112, 12, 18, 22));
+        using var shade = new SolidBrush(Color.FromArgb(108, 16, 16, 18));
         using var outside = new Region(ClientRectangle);
         if (!SelectedRegion.IsEmpty)
         {
@@ -58,32 +58,56 @@ internal sealed class ScreenshotSelectionOverlay : Form
 
         if (SelectedRegion.Width > 0 && SelectedRegion.Height > 0)
         {
-            using var border = new Pen(UiTheme.Accent, UiTheme.Scale(2, DeviceDpi));
-            e.Graphics.DrawRectangle(border, SelectedRegion);
-            using var contrast = new Pen(Color.White);
-            Rectangle inner = SelectedRegion;
-            inner.Inflate(-1, -1);
-            if (inner.Width > 0 && inner.Height > 0) e.Graphics.DrawRectangle(contrast, inner);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            // Pure Apple-minimalist selection outline: crisp white border + subtle outer contrast line.
+            Rectangle outer = SelectedRegion;
+            outer.Inflate(1, 1);
+            using (var outerContrast = new Pen(Color.FromArgb(140, 0, 0, 0), 1F))
+                e.Graphics.DrawRectangle(outerContrast, outer);
+            using (var border = new Pen(Color.White, UiTheme.Scale(1, DeviceDpi)))
+                e.Graphics.DrawRectangle(border, SelectedRegion);
+            DrawSelectionHandles(e.Graphics);
         }
         Rectangle monitor = Screen.FromPoint(PointToScreen(_pointer)).Bounds;
         monitor.Offset(-Left, -Top);
         Rectangle safe = Rectangle.Intersect(monitor, ClientRectangle);
         if (safe.IsEmpty) safe = ClientRectangle;
-        int gap = UiTheme.Scale(16, DeviceDpi);
+        int gap = UiTheme.Scale(14, DeviceDpi);
         if (_dragging && !SelectedRegion.IsEmpty)
         {
-            string dimensions = $"{SelectedRegion.Width} × {SelectedRegion.Height} px · 松开生成贴图 · 右键或 Esc 取消";
-            int hintHeight = Font.Height + UiTheme.Scale(24, DeviceDpi);
+            string dimensions = $"{SelectedRegion.Width} × {SelectedRegion.Height}  ·  松开生成贴图  ·  Esc 取消";
+            int hintHeight = Font.Height + UiTheme.Scale(22, DeviceDpi);
             int y = SelectedRegion.Bottom + gap;
             if (y + hintHeight > safe.Bottom) y = SelectedRegion.Top - hintHeight - gap;
-            // Do not place instructions over selected pixels when there is no outside space.
             if (y >= safe.Top && y + hintHeight <= safe.Bottom)
                 UiTheme.DrawOverlayHint(e.Graphics, dimensions, new Point(SelectedRegion.Left, y), safe, DeviceDpi);
         }
         else
         {
-            string hint = "截图贴图 · 按住鼠标拖动框选\n松开生成贴图 · 右键或 Esc 取消";
+            string hint = "拖动框选区域生成贴图  ·  右键或 Esc 取消";
             UiTheme.DrawOverlayHint(e.Graphics, hint, new Point(safe.Left + gap, safe.Top + gap), safe, DeviceDpi);
+        }
+    }
+
+    private void DrawSelectionHandles(Graphics graphics)
+    {
+        if (SelectedRegion.Width < 16 || SelectedRegion.Height < 16) return;
+        int size = Math.Max(6, UiTheme.Scale(7, DeviceDpi));
+        float offset = size / 2F;
+        Rectangle region = SelectedRegion;
+        Point[] centers =
+        {
+            new(region.Left, region.Top), new(region.Left + region.Width / 2, region.Top), new(region.Right, region.Top),
+            new(region.Left, region.Top + region.Height / 2), new(region.Right, region.Top + region.Height / 2),
+            new(region.Left, region.Bottom), new(region.Left + region.Width / 2, region.Bottom), new(region.Right, region.Bottom)
+        };
+        using var fill = new SolidBrush(Color.White);
+        using var border = new Pen(Color.FromArgb(180, 29, 29, 31), 1.2F);
+        foreach (Point center in centers)
+        {
+            var bounds = new RectangleF(center.X - offset, center.Y - offset, size, size);
+            graphics.FillEllipse(fill, bounds);
+            graphics.DrawEllipse(border, bounds);
         }
     }
 
@@ -162,9 +186,8 @@ internal sealed class ScreenshotSelectionOverlay : Form
     protected override void WndProc(ref Message m)
     {
         base.WndProc(ref m);
-        if (m.Msg == 0x0024 && m.LParam != IntPtr.Zero) // WM_GETMINMAXINFO
+        if (m.Msg == 0x0024 && m.LParam != IntPtr.Zero)
         {
-            // Windows' default maximum form size can be smaller than a multi-monitor desktop.
             var info = Marshal.PtrToStructure<NativeMethods.MinMaxInfo>(m.LParam);
             info.MaxTrackSize = new NativeMethods.Point(
                 Math.Max(info.MaxTrackSize.X, _screenBounds.Width),

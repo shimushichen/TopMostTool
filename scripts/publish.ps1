@@ -37,7 +37,7 @@ Run TopMostTool.exe. No installation or separate .NET runtime is required.
 Ctrl + Space: toggle the foreground window's always-on-top state.
 Ctrl + Shift + Space: remove always-on-top from the foreground window.
 Ctrl + Shift + S: capture a region and pin it as an image.
-Right-click the tray icon for settings, window management and Exit.
+Left-click or right-click the tray icon for the Control Center, settings, window management and Exit.
 Save images before closing them or exiting. Unsaved images are not restored.
 Exit an older instance through its tray menu before replacing the executable.
 

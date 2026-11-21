@@ -14,7 +14,7 @@ SIZES = range(12, 65)
 
 def build_frame(source, bounds, size):
     span = max(bounds[2] - bounds[0], bounds[3] - bounds[1])
-    inset = max(2, size * 0.10)
+    inset = max(1.5, size * 0.08)
     side = span * size / (size - inset * 2)
     # Sample through transparent padding, retaining the complete source edges.
     padding = source.width

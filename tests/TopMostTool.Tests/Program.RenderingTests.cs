@@ -71,7 +71,7 @@ internal static partial class Program
         for (int size = 12; size <= 64; size++)
         {
             using Bitmap pin = TrayIconFactory.CreateMenuPinImage(size);
-            int teal = 0;
+            int blue = 0, pearl = 0;
             bool clearEdges = true;
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
@@ -80,37 +80,36 @@ internal static partial class Program
                     if (x == 0 || y == 0 || x == size - 1 || y == size - 1)
                         clearEdges &= pixel.A == 0;
                     if (pixel.A < 160) continue;
-                    if (pixel.G > pixel.R + 40 && pixel.B > 80) teal++;
+                    if (pixel.B > pixel.R + 40 && pixel.B > 140) blue++;
+                    if (pixel.R > 180 && pixel.G > 185 && pixel.B > 195) pearl++;
                 }
-            Check(pin.Size == new Size(size, size) && clearEdges && teal > size * size / 16,
-                $"{size}px menu pin preserves the teal artwork and transparent safety edges");
+            Check(pin.Size == new Size(size, size) && clearEdges && blue > size * size / 10 && pearl > size * size / 6,
+                $"{size}px menu icon preserves the pearl-silver glass + sapphire top layer silhouette and transparent safety edges");
         }
         foreach (int size in new[] { 16, 20, 24, 32 })
         {
             using Bitmap approved = TrayIconFactory.CreatePinImage(size);
             using Bitmap menu = TrayIconFactory.CreateMenuPinImage(size);
-            (int dark, int teal) reference = CountPinColors(approved);
-            (int dark, int teal) actual = CountPinColors(menu);
-            // Different sampling filters can shift a few edge pixels. A new
-            // solid dark rim, however, must not replace the approved shading.
-            Check(actual.dark <= reference.dark + Math.Max(3, size / 3) &&
-                Math.Abs(actual.teal - reference.teal) <= Math.Max(4, reference.teal / 8),
-                $"{size}px menu pin retains the approved v2 color balance without an extra dark rim");
+            (int blue, int pearl) reference = CountPinColors(approved);
+            (int blue, int pearl) actual = CountPinColors(menu);
+            Check(Math.Abs(actual.blue - reference.blue) <= Math.Max(6, reference.blue / 6) &&
+                Math.Abs(actual.pearl - reference.pearl) <= Math.Max(8, reference.pearl / 6),
+                $"{size}px menu icon retains the pearl + sapphire color balance of the tray icon");
         }
     }
 
-    private static (int dark, int teal) CountPinColors(Bitmap bitmap)
+    private static (int blue, int pearl) CountPinColors(Bitmap bitmap)
     {
-        int dark = 0, teal = 0;
+        int blue = 0, pearl = 0;
         for (int y = 0; y < bitmap.Height; y++)
             for (int x = 0; x < bitmap.Width; x++)
             {
                 Color pixel = bitmap.GetPixel(x, y);
                 if (pixel.A < 160) continue;
-                if (pixel.R < 70 && pixel.G < 100 && pixel.B < 110) dark++;
-                if (pixel.G > pixel.R + 40 && pixel.B > 80) teal++;
+                if (pixel.B > pixel.R + 40 && pixel.B > 140) blue++;
+                if (pixel.R > 180 && pixel.G > 185 && pixel.B > 195) pearl++;
             }
-        return (dark, teal);
+        return (blue, pearl);
     }
 
     private static async Task TestTrayPinImageSlot()
@@ -254,6 +253,14 @@ internal static partial class Program
                     }
                 Check(darkArc > 0, $"{button.Text} button draws its rounded border arc");
             }
+            // Verify all four straight border edges are crisp, unclipped, and pixel-symmetrical.
+            Color topEdge = bitmap.GetPixel(button.Width / 2, 0);
+            Color bottomEdge = bitmap.GetPixel(button.Width / 2, button.Height - 1);
+            Color leftEdge = bitmap.GetPixel(0, button.Height / 2);
+            Color rightEdge = bitmap.GetPixel(button.Width - 1, button.Height / 2);
+            Check(topEdge.ToArgb() == bottomEdge.ToArgb() && leftEdge.ToArgb() == rightEdge.ToArgb() &&
+                topEdge.ToArgb() == leftEdge.ToArgb(),
+                $"{button.Text} button renders symmetrical unclipped borders on all four edges (T={topEdge.R} B={bottomEdge.R} L={leftEdge.R} R={rightEdge.R})");
         }
         SaveControlPreview(form, "rounded-button-states.png");
         form.Close();
